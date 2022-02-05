@@ -1,0 +1,9 @@
+.vscode
+FreeRTOS-Kernel
+pico-sdk
+pico-examples
+simple_usb
+Vandalino3PicoTestSuite
+
+A4/build
+A4/FreeRTOSTConfig.h
