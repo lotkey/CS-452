@@ -1,3 +1,5 @@
+#include "Board/Led/Led.hpp"
+
 #include <FreeRTOS.h>
 #include <pico/stdlib.h>
 #include <pico/time.h>
@@ -10,8 +12,6 @@
 #include <iostream>
 #include <tuple>
 
-#include "Led/Led.hpp"
-
 void vCount(void *);
 void vShowCounter(void *);
 void vTurnD13On(void *);
@@ -20,8 +20,8 @@ void vTurnD13Off(void *);
 int main() {
    // Initialize all IO
    stdio_init_all();
-   Led::Seven_segment::init();
-   Led::D13::init();
+   Board::Led::Seven_segment::init();
+   Board::Led::D13::init();
 
    try {
       SemaphoreHandle_t xCountSem = xSemaphoreCreateBinary();
@@ -117,14 +117,14 @@ void vShowCounter(void *arg) {
 
    while (true) {
       if (uLoop > 0) {
-         Led::Seven_segment::display_uint(uCount);
+         Board::Led::Seven_segment::display_uint(uCount);
          uLoop--;
       } else if (xSemaphoreTake(xCountSem, portMAX_DELAY)) {
          uint uCurrentCount;
          if (xQueueReceive(xCountQueue, (void *)&uCurrentCount, 0)) {
             uCount = uCurrentCount;
          }
-         Led::Seven_segment::display_uint(uCount);
+         Board::Led::Seven_segment::display_uint(uCount);
          uLoop = uNumLoops;
       }
    }
@@ -137,7 +137,7 @@ void vTurnD13On(void *arg) {
 
    while (true) {
       if (xSemaphoreTake(xBlinkOnSem, portMAX_DELAY)) {
-         Led::D13::turn_on();
+         Board::Led::D13::turn_on();
       }
    }
 }
@@ -149,7 +149,7 @@ void vTurnD13Off(void *arg) {
 
    while (true) {
       if (xSemaphoreTake(xBlinkOffSem, portMAX_DELAY)) {
-         Led::D13::turn_off();
+         Board::Led::D13::turn_off();
       }
    }
 }

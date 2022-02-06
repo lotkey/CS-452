@@ -6,7 +6,7 @@
 #include <set>
 #include <tuple>
 
-namespace Led {
+namespace Board::Led {
 /// "Static" class to control the 7-segment LED
 class Seven_segment {
  public:

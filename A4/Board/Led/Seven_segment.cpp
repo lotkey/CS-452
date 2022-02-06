@@ -1,10 +1,10 @@
-#include "Led/Seven_segment.hpp"
+#include "Board/Led/Seven_segment.hpp"
 
 #include <pico/stdlib.h>
 
 #include <set>
 
-namespace Led {
+namespace Board::Led {
 const std::set<Seven_segment::Segment> Seven_segment::s_segments = {
     Segment::north,  Segment::northeast, Segment::southeast,
     Segment::south,  Segment::southwest, Segment::northwest,
@@ -170,4 +170,4 @@ void Seven_segment::display_uint(uint ui) {
    clear();
    display_char(uint_to_char(left_digit), Side::left);
 }
-} // namespace Led
+} // namespace Board::Led

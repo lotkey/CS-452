@@ -28,8 +28,11 @@ target_include_directories(freertos PUBLIC
 
 add_executable(assignment4
     main.cpp
-    Led/Seven_segment.cpp
-    Led/D13.cpp
+    Board/Button.cpp
+    Board/Dipswitch.cpp
+    Board/Led/Seven_segment.cpp
+    Board/Led/D13.cpp
+    Board/Util/Color.cpp
 )
 
 set_target_properties(assignment4 PROPERTIES

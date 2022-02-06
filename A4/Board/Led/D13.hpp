@@ -2,7 +2,7 @@
 
 #include <pico/stdlib.h>
 
-namespace Led {
+namespace Board::Led {
 /// "Static" class to control the D13 LED
 class D13 {
  public:
