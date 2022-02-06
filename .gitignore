@@ -4,5 +4,6 @@ pico-sdk
 pico-examples
 simple_usb
 Vandalino3PicoTestSuite
+**/*.docx
 
 A4/build
