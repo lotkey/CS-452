@@ -1,5 +1,6 @@
 #include "Board/Led/D13.hpp"
 
+#include <hardware/gpio.h>
 #include <pico/stdlib.h>
 
 namespace Board::Led {
@@ -32,4 +33,4 @@ void D13::set(bool on) {
 }
 
 bool D13::is_on() { return s_is_on; }
-} // namespace Led
+} // namespace Board::Led

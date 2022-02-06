@@ -27,6 +27,7 @@ int main() {
       SemaphoreHandle_t xCountSem = xSemaphoreCreateBinary();
       SemaphoreHandle_t xBlinkOnSem = xSemaphoreCreateBinary();
       SemaphoreHandle_t xBlinkOffSem = xSemaphoreCreateBinary();
+      // To communicate the count between vCount and vShowCounter
       QueueHandle_t xCountQueue = xQueueCreate(100, sizeof(uint));
 
       std::tuple<SemaphoreHandle_t, QueueHandle_t, SemaphoreHandle_t,
@@ -51,7 +52,7 @@ int main() {
 
       // Loop indefinitely
       while (true) {
-      };
+      }
 
    } catch (std::exception e) {
       /// Display the exception for debugging
@@ -63,11 +64,9 @@ int main() {
 /// Gives semaphores to other tasks to display the count and to blink.
 /// @param arg tuple {xCountSem, xCountQueue, xBlinkOnSem, xBlinkOffSem}
 void vCount(void *arg) {
-   std::tuple<SemaphoreHandle_t, QueueHandle_t, SemaphoreHandle_t,
-              SemaphoreHandle_t>
-       args = *((std::tuple<SemaphoreHandle_t, QueueHandle_t, SemaphoreHandle_t,
-                            SemaphoreHandle_t> *)arg);
-   auto [xCountSem, xCountQueue, xBlinkOnSem, xBlinkOffSem] = args;
+   auto [xCountSem, xCountQueue, xBlinkOnSem, xBlinkOffSem] =
+       *((std::tuple<SemaphoreHandle_t, QueueHandle_t, SemaphoreHandle_t,
+                     SemaphoreHandle_t> *)arg);
 
    bool bGoingUp = true;
    uint uCounter = 0;
@@ -76,6 +75,10 @@ void vCount(void *arg) {
    while (true) {
       uint uCurrentHalfSecond = to_us_since_boot(get_absolute_time()) * 2e-6;
       if (uLastHalfSecond != uCurrentHalfSecond) {
+
+         // Either update the counter, or change the direction
+         // This way, the counter stays at the end-points for two loops
+         // So it loops from 0-42, then from 42-0
 
          if (bGoingUp) {
             if (uCounter == 42) {
@@ -91,9 +94,9 @@ void vCount(void *arg) {
             }
          }
 
+         uLastHalfSecond = uCurrentHalfSecond;
          xSemaphoreGive(xBlinkOnSem);
          xQueueSend(xCountQueue, (void *)&uCounter, 0);
-         uLastHalfSecond = uCurrentHalfSecond;
       }
 
       xSemaphoreGive(xCountSem);
@@ -105,9 +108,8 @@ void vCount(void *arg) {
 /// Loops for a bit before waiting for the semaphore again.
 /// @param arg tuple {xCountSem, xCountQueue}
 void vShowCounter(void *arg) {
-   std::tuple<SemaphoreHandle_t, QueueHandle_t> args =
+   auto [xCountSem, xCountQueue] =
        *((std::tuple<SemaphoreHandle_t, QueueHandle_t> *)arg);
-   auto [xCountSem, xCountQueue] = args;
 
    uint uCount = 0;
    // Number of loops to do before waiting for the semaphore again
@@ -120,10 +122,10 @@ void vShowCounter(void *arg) {
          Board::Led::Seven_segment::display_uint(uCount);
          uLoop--;
       } else if (xSemaphoreTake(xCountSem, portMAX_DELAY)) {
-         uint uCurrentCount;
-         if (xQueueReceive(xCountQueue, (void *)&uCurrentCount, 0)) {
-            uCount = uCurrentCount;
+
+         while (xQueueReceive(xCountQueue, (void *)&uCount, 0)) {
          }
+
          Board::Led::Seven_segment::display_uint(uCount);
          uLoop = uNumLoops;
       }

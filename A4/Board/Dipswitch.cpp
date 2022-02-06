@@ -1,6 +1,7 @@
 #include "Board/Dipswitch.hpp"
 
 #include <pico/stdlib.h>
+#include <hardware/gpio.h>
 
 #include <vector>
 
@@ -15,7 +16,7 @@ void Dipswitch::init() {
 }
 
 bool Dipswitch::get(uint switch_num) {
-   return gpio_get(s_pins[switch_num - 1]);
+   return gpio_get(s_pins[switch_num]);
 }
 
 std::vector<bool> Dipswitch::get() {

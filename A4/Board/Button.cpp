@@ -1,5 +1,7 @@
 #include "Board/Button.hpp"
 
+#include <hardware/gpio.h>
+
 namespace Board {
 void Button::init() {
    gpio_init((uint)Position::top_left);

@@ -1,6 +1,7 @@
 #include "Board/Led/Seven_segment.hpp"
 
 #include <pico/stdlib.h>
+#include <hardware/gpio.h>
 
 #include <set>
 

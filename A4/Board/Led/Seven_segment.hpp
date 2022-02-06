@@ -38,11 +38,10 @@ class Seven_segment {
 
    /// Displays a character to the LED
    /// @param c the char to display
-   /// @param left_side whether or not to display to the left LED
-   /// @param right_side whether or not to display to the right LED
+   /// @param side which side(s) to display to
    /// @returns true if successful, false if there is no 7-segment
    /// representation of the char
-   static bool display_char(char c, Side);
+   static bool display_char(char c, Side side);
 
    /// Displays the two rightmost digits of an unsigned int
    /// Displays 14 when given 14, 00 when given 100, 01 when given 1, etc.
