@@ -1,4 +1,4 @@
-#include "Board/Led/Led.hpp"
+#include "Board/Board.hpp"
 
 #include <FreeRTOS.h>
 #include <pico/stdlib.h>
@@ -74,13 +74,26 @@ void vCount(void *arg) {
 
    while (true) {
       uint uCurrentHalfSecond = to_us_since_boot(get_absolute_time()) * 2e-6;
-      if (uLastHalfSecond != uCurrentHalfSecond) {
+      if (Board::Button::get(Board::Button::Position::top_left)) {
+         uCounter = 0;
+         bGoingUp = true;
+      } else if (Board::Button::get(Board::Button::Position::top_right)) {
+         uCounter = 42;
+         bGoingUp = false;
+      }
+
+      if (!Board::Button::get(Board::Button::Position::bottom) &&
+          uLastHalfSecond != uCurrentHalfSecond) {
 
          // Either update the counter, or change the direction
          // This way, the counter stays at the end-points for two loops
          // So it loops from 0-42, then from 42-0
 
-         if (bGoingUp) {
+         if (Board::Button::get(Board::Button::Position::top_left)) {
+            uCounter = 0;
+         } else if (Board::Button::get(Board::Button::Position::top_right)) {
+            uCounter = 42;
+         } else if (bGoingUp) {
             if (uCounter == 42) {
                bGoingUp = false;
             } else {
