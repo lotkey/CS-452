@@ -7,3 +7,4 @@ Vandalino3PicoTestSuite
 V3-I2CHDC1080
 **/*.docx
 **/build/
+**/*_backup/

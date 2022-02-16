@@ -18,6 +18,30 @@ const std::map<HDC1080::Register, int> HDC1080::s_bytes_per_register = {
     {Register::SerialID2, 2},      {Register::SerialID3, 2},
     {Register::ManufacturerID, 2}, {Register::Temperature, 2}};
 
+uint64_t HDC1080::s_serialID;
+int HDC1080::s_manufacturerID;
+int HDC1080::s_deviceID;
+bool HDC1080::s_rst;
+bool HDC1080::s_heat;
+bool HDC1080::s_mode;
+bool HDC1080::s_btst;
+bool HDC1080::s_tres;
+uint HDC1080::s_hres;
+
+void HDC1080::init() {
+   s_manufacturerID = read(Register::ManufacturerID);
+   s_deviceID = read(Register::DeviceID);
+
+   int s1 = read(Register::SerialID1);
+   int s2 = read(Register::SerialID2);
+   int s3 = 0b0000000111111111 & (read(Register::SerialID3) >> 7);
+   uint64_t id = 0;
+   id = id << 16 | s1;
+   id = id << 16 | s2;
+   id = id << 8 | s3;
+   s_serialID = id;
+}
+
 int HDC1080::ctof(int tempC) {
    int tempF = ((float)tempC * (9.0 / 5.0)) + 32;
    return tempF;
@@ -35,47 +59,36 @@ int HDC1080::humidity() {
    return result;
 }
 
-const HDC1080::Config HDC1080::get_configuration() {
+void HDC1080::read_config() {
    int configuration = read(Register::Configuration);
 
    auto get_bit = [](int n, int bit_number) {
       return (n & (1 << bit_number)) >> bit_number;
    };
 
-   bool rst = get_bit(configuration, 15);
-   bool heat = get_bit(configuration, 13);
-   bool mode = get_bit(configuration, 12);
-   bool btst = get_bit(configuration, 11);
-   bool tres = get_bit(configuration, 10);
-   uint hres = 0;
-   hres = (0b0000001100000000 & configuration) >> 8;
-   Config config(rst, heat, mode, btst, tres, hres);
-   return config;
+   s_rst = get_bit(configuration, 15);
+   s_heat = get_bit(configuration, 13);
+   s_mode = get_bit(configuration, 12);
+   s_btst = get_bit(configuration, 11);
+   s_tres = get_bit(configuration, 10);
+   s_hres = 0;
+   s_hres = (0b0000001100000000 & configuration) >> 8;
 }
 
-uint64_t HDC1080::serialID() {
-   int s1 = read(Register::SerialID1);
-   int s2 = read(Register::SerialID2);
-   int s3 = 0b0000000111111111 & (read(Register::SerialID3) >> 7);
-   uint64_t id = 0;
-   id = id << 16 | s1;
-   id = id << 16 | s2;
-   id = id << 8 | s3;
-   return id;
-}
+uint64_t HDC1080::serialID() { return s_serialID; }
 
-int HDC1080::manufacturerID() { return read(Register::ManufacturerID); }
+int HDC1080::manufacturerID() { return s_manufacturerID; }
 
-int HDC1080::deviceID() { return read(Register::DeviceID); }
+int HDC1080::deviceID() { return s_deviceID; }
 
-int HDC1080::read(Register reg, int sleep_amount_ms) {
+int HDC1080::read(Register reg) {
    uint8_t buffer[s_bytes_per_register.at(reg)];
    uint8_t reg_int = (uint8_t)reg;
-   int ret = i2c_write_blocking(I2C_PORT, address, &reg_int, 1, false);
+   int ret = i2c_write_blocking(I2C_PORT, s_address, &reg_int, 1, false);
 
-   vTaskDelay(sleep_amount_ms / portTICK_PERIOD_MS);
+   vTaskDelay(s_wait_time_ms / portTICK_PERIOD_MS);
 
-   ret = i2c_read_blocking(I2C_PORT, address, buffer,
+   ret = i2c_read_blocking(I2C_PORT, s_address, buffer,
                            s_bytes_per_register.at(reg), false);
 
    int result = 0;
@@ -85,4 +98,36 @@ int HDC1080::read(Register reg, int sleep_amount_ms) {
 
    return result;
 }
+
+bool HDC1080::get_reset() { return s_rst; }
+
+bool HDC1080::get_heater() { return s_heat; }
+
+bool HDC1080::get_mode_of_acquisition() { return s_mode; }
+
+bool HDC1080::get_battery_status() { return s_btst; }
+
+bool HDC1080::get_temperature_resolution() { return s_tres; }
+
+uint HDC1080::get_humidity_resolution() { return s_hres; }
+
+uint64_t HDC1080::make_config() {
+   uint64_t config = 0;
+   config = config | (s_rst << 15);
+   config = config | (s_heat << 13);
+   config = config | (s_mode << 12);
+   config = config | (s_btst << 11);
+   config = config | (s_tres << 10);
+   config = config | (s_hres << 8);
+
+   return config;
+}
+
+void HDC1080::write_config(uint64_t config) {
+   uint8_t buffer[3] = {(uint8_t)Register::Configuration,
+                        (uint8_t)((config >> 8) & 0xFF),
+                        (uint8_t)(config >> 8)};
+   i2c_write_blocking(I2C_PORT, s_address, buffer, 3, false);
+}
+
 } // namespace I2C

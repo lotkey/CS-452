@@ -31,15 +31,14 @@ int main() {
 
 void vRead() {
    while (true) {
-      I2C::HDC1080::Config config(I2C::HDC1080::get_configuration());
-      std::cout << "Software reset: " << config.software_reset << std::endl;
-      std::cout << "Heater: " << config.heater << std::endl;
-      std::cout << "Mode of acquisition: " << config.mode_of_acquisition
+      std::cout << "Serial ID: " << I2C::HDC1080::serialID << std::endl;
+      std::cout << "Heater: " << I2C::HDC1080::get_heater() << std::endl;
+      std::cout << "Mode of acquisition: " << I2C::HDC1080::get_mode_of_acquisition()
                 << std::endl;
-      std::cout << "Battery: " << config.battery_status << std::endl;
-      std::cout << "Temperature resolution: " << config.temperature_resolution
+      std::cout << "Battery: " << I2C::HDC1080::get_battery_status() << std::endl;
+      std::cout << "Temperature resolution: " << I2C::HDC1080::get_temperature_resolution()
                 << std::endl;
-      std::cout << "Humidity resolution: " << config.humidity_resolution
+      std::cout << "Humidity resolution: " << I2C::HDC1080::get_humidity_resolution()
                 << std::endl;
       std::cout << std::endl;
       vTaskDelay(1000 / portTICK_PERIOD_MS);
