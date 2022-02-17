@@ -12,7 +12,7 @@
 #include <math.h>
 
 namespace I2C {
-const std::map<HDC1080::Register, int> HDC1080::s_bytes_per_register = {
+const std::map<HDC1080::Register, uint> HDC1080::s_bytes_per_register = {
     {Register::Configuration, 2},  {Register::DeviceID, 2},
     {Register::Humidity, 2},       {Register::SerialID1, 2},
     {Register::SerialID2, 2},      {Register::SerialID3, 2},
@@ -85,11 +85,18 @@ int HDC1080::read(Register reg) {
    uint8_t buffer[s_bytes_per_register.at(reg)];
    uint8_t reg_int = (uint8_t)reg;
    int ret = i2c_write_blocking(I2C_PORT, s_address, &reg_int, 1, false);
+   if (ret < 0) {
+      std::cout << "Error: Write blocking returned " << ret << std::endl;
+   }
 
    vTaskDelay(s_wait_time_ms / portTICK_PERIOD_MS);
 
    ret = i2c_read_blocking(I2C_PORT, s_address, buffer,
                            s_bytes_per_register.at(reg), false);
+
+   if (ret < 0) {
+      std::cout << "Error: Read blocking returned " << ret << std::endl;
+   }
 
    int result = 0;
    for (const auto &byte : buffer) {
@@ -97,6 +104,49 @@ int HDC1080::read(Register reg) {
    }
 
    return result;
+}
+
+void HDC1080::set_heater(bool b) {
+   if (s_heat == b)
+      return;
+
+   s_heat = b;
+   refresh_config();
+}
+
+void HDC1080::set_mode_of_acquisition(bool b) {
+   if (s_mode == b)
+      return;
+
+   s_mode = b;
+   refresh_config();
+}
+
+void HDC1080::set_battery_status(bool b) {
+   if (s_btst == b)
+      return;
+
+   s_btst = b;
+   refresh_config();
+}
+
+void HDC1080::set_temperature_resolution(bool b) {
+   if (s_tres == b)
+      return;
+
+   s_tres = b;
+   refresh_config();
+}
+
+void HDC1080::set_humidity_resolution(uint ui) {
+   if (s_hres == ui)
+      return;
+
+   if (ui > 2)
+      return;
+
+   s_hres = ui;
+   refresh_config();
 }
 
 bool HDC1080::get_reset() { return s_rst; }
@@ -111,6 +161,11 @@ bool HDC1080::get_temperature_resolution() { return s_tres; }
 
 uint HDC1080::get_humidity_resolution() { return s_hres; }
 
+void HDC1080::refresh_config() {
+   write_config();
+   read_config();
+}
+
 uint64_t HDC1080::make_config() {
    uint64_t config = 0;
    config = config | (s_rst << 15);
@@ -123,11 +178,14 @@ uint64_t HDC1080::make_config() {
    return config;
 }
 
-void HDC1080::write_config(uint64_t config) {
+void HDC1080::write_config() {
+   uint64_t config = make_config();
    uint8_t buffer[3] = {(uint8_t)Register::Configuration,
                         (uint8_t)((config >> 8) & 0xFF),
                         (uint8_t)(config >> 8)};
-   i2c_write_blocking(I2C_PORT, s_address, buffer, 3, false);
+   int ret = i2c_write_blocking(I2C_PORT, s_address, buffer, 3, false);
+   if (ret < 0) {
+      std::cout << "Error: Write blocking returned " << ret << std::endl;
+   }
 }
-
 } // namespace I2C
