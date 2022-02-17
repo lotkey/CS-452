@@ -75,11 +75,11 @@ void HDC1080::read_config() {
    s_hres = (0b0000001100000000 & configuration) >> 8;
 }
 
-uint64_t HDC1080::serialID() { return s_serialID; }
+const uint64_t &HDC1080::serialID() { return s_serialID; }
 
-int HDC1080::manufacturerID() { return s_manufacturerID; }
+const int &HDC1080::manufacturerID() { return s_manufacturerID; }
 
-int HDC1080::deviceID() { return s_deviceID; }
+const int &HDC1080::deviceID() { return s_deviceID; }
 
 int HDC1080::read(Register reg) {
    uint8_t buffer[s_bytes_per_register.at(reg)];
@@ -149,17 +149,17 @@ void HDC1080::set_humidity_resolution(uint ui) {
    refresh_config();
 }
 
-bool HDC1080::get_reset() { return s_rst; }
+const bool &HDC1080::get_reset() { return s_rst; }
 
-bool HDC1080::get_heater() { return s_heat; }
+const bool &HDC1080::get_heater() { return s_heat; }
 
-bool HDC1080::get_mode_of_acquisition() { return s_mode; }
+const bool &HDC1080::get_mode_of_acquisition() { return s_mode; }
 
-bool HDC1080::get_battery_status() { return s_btst; }
+const bool &HDC1080::get_battery_status() { return s_btst; }
 
-bool HDC1080::get_temperature_resolution() { return s_tres; }
+const bool &HDC1080::get_temperature_resolution() { return s_tres; }
 
-uint HDC1080::get_humidity_resolution() { return s_hres; }
+const uint &HDC1080::get_humidity_resolution() { return s_hres; }
 
 void HDC1080::refresh_config() {
    write_config();

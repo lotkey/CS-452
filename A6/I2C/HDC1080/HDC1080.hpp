@@ -21,11 +21,11 @@ class HDC1080 {
    /// @returns Humidity reading in relative%
    static int humidity();
    /// @returns Serial ID
-   static uint64_t serialID();
+   static const uint64_t &serialID();
    /// @returns Manufacturer ID
-   static int manufacturerID();
+   static const int &manufacturerID();
    /// @returns Device ID
-   static int deviceID();
+   static const int &deviceID();
 
    /// @param b False: On.
    /// True: Off.
@@ -47,24 +47,24 @@ class HDC1080 {
 
    /// @returns False: Normal Operation, this bit self clears.
    /// True: Software Reset.
-   static bool get_reset();
+   static const bool &get_reset();
    /// @returns False: On.
    /// True: Off.
-   static bool get_heater();
+   static const bool &get_heater();
    /// @returns False: Temperature or Humidity is acquired.
    /// True: Temperature and Humidity are acquired in sequence, Temperature
    /// first.
-   static bool get_mode_of_acquisition();
+   static const bool &get_mode_of_acquisition();
    /// @returns False: Battery voltage > 2.8V (read only).
    /// True: Battery voltage < 2.8V (read only).
-   static bool get_battery_status();
+   static const bool &get_battery_status();
    /// @returns False: 14 bit.
    /// True: 11 bit.
-   static bool get_temperature_resolution();
+   static const bool &get_temperature_resolution();
    /// @returns 00: 14 bit.
    /// 01: 11 bit.
    /// 11: 8 bit.
-   static uint get_humidity_resolution();
+   static const uint &get_humidity_resolution();
 
  private:
    enum class Register {
