@@ -40,6 +40,8 @@ void HDC1080::init() {
    id = id << 16 | s2;
    id = id << 8 | s3;
    s_serialID = id;
+
+   read_config();
 }
 
 int HDC1080::ctof(int tempC) {

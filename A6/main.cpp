@@ -34,24 +34,31 @@ int main() {
    vTaskStartScheduler();
 }
 
+/// Reads in temperature and humidity, sends one to a queue to be displayed.
 void vRead(void *arg) {
    QueueHandle_t xQueue = (QueueHandle_t)arg;
+   /// If true, then the temperature will be displayed to the LED.
+   /// Otherwise, the humidity.
    bool bShowingTemp = true;
+   /// Stores the temperature/humidity
    uint uNumToShow;
    I2C::HDC1080::init();
+   /// Set to "acquire" both humidity and temperature
    I2C::HDC1080::set_mode_of_acquisition(true);
 
    while (true) {
       if (bShowingTemp) {
+         /// Get the temperature and convert to Fahrenheit
          uNumToShow = I2C::HDC1080::temperatureC();
          uNumToShow = I2C::HDC1080::ctof(uNumToShow);
 
+         /// Clear the minicom screen
          for (unsigned i = 0; i < 100; i++) {
             std::cout << std::endl;
          }
 
-         std::cout << "================== IDs =================="
-                   << std::endl;
+         /// Print a whole bunch of stuff!
+         std::cout << "================== IDs ==================" << std::endl;
          std::cout << "      Serial ID:\t" << I2C::HDC1080::serialID()
                    << std::endl;
          std::cout << "      Device ID:\t" << I2C::HDC1080::deviceID()
@@ -85,12 +92,16 @@ void vRead(void *arg) {
          uNumToShow = I2C::HDC1080::humidity();
       }
 
+      /// Send to vShow
       xQueueSend(xQueue, (void *)&uNumToShow, 0);
+      /// Switch off
       bShowingTemp = !bShowingTemp;
+      /// Display for 5 seconds
       vTaskDelay(5000 / portTICK_PERIOD_MS);
    }
 }
 
+/// Reads a number from the queue and displays it on the 7-segment LED
 void vShow(void *arg) {
    QueueHandle_t xQueue = (QueueHandle_t)arg;
    uint uNumToShow = 0;

@@ -8,14 +8,20 @@
 namespace I2C {
 class HDC1080 {
  public:
-   /// Read configuration
-   /// Read IDs
+   /// Read IDs:
+   /// IDs are static, they only need to be read once and stored. This is more
+   /// efficient because there is a ~20 ms wait every time something is read
+   /// from the HDC1080 that is avoided this way.
+   ///
+   /// Read configuration:
+   /// The configuration only needs to be read every time it is changed. Every
+   /// time it is changed is through this class, so it can be stored as well
+   /// until it is changed. Then it can be reread.
    static void init();
    /// Convert from Celsius to Fahrenheit
    /// @param tempc Temperature in Celsius
    /// @returns Temperature in Fahrenheit
    static int ctof(int tempc);
-
    /// @returns Temperature reading in Celsius
    static int temperatureC();
    /// @returns Humidity reading in relative%
