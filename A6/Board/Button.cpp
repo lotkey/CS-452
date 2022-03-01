@@ -2,6 +2,9 @@
 
 #include <hardware/gpio.h>
 
+#include <optional>
+#include <vector>
+
 namespace Board {
 void Button::init() {
    gpio_init((uint)Position::top_left);
@@ -14,4 +17,15 @@ void Button::init() {
 }
 
 bool Button::get(Position pos) { return gpio_get((uint)pos); }
+
+std::optional<Button::Position> Button::get() {
+   std::vector<Position> positions = {Position::top_left, Position::top_right,
+                                      Position::bottom};
+   for (const auto &position : positions) {
+      if (get(position)) {
+         return position;
+      }
+   }
+   return {};
+}
 } // namespace Board
