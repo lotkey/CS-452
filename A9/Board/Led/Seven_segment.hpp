@@ -38,15 +38,33 @@ class Seven_segment {
    /// @param side which side(s) to display to
    /// @returns true if successful, false if there is no 7-segment
    /// representation of the char
-   static bool display_char(char c, Side side);
+   static bool set(char c, Side side);
    /// Displays the two rightmost digits of an unsigned int
    /// Displays 14 when given 14, 00 when given 100, 01 when given 1, etc.
    /// @param ui uint to display
    static void display_uint(uint ui);
+   static void set(Segment seg, Side side);
+
+   template <typename T1, typename T2> static void set_combo(T1 t1, T2 t2) {
+      clear();
+
+      if (s_tick) {
+         set(t1, Side::left);
+         // uint right_digit = ui % 10;
+         // display_char(uint_to_char(right_digit), Side::right);
+      } else {
+         set(t2, Side::right);
+         // uint left_digit = ui % 100 / 10;
+         // display_char(uint_to_char(left_digit), Side::left);
+      }
+
+      s_tick = !s_tick;
+   }
 
  private:
    static const std::set<Segment> s_segments;
    static const std::map<char, std::set<Segment>> s_chars_as_segments;
    static const std::map<Side, std::tuple<bool, bool>> s_side_to_bool;
+   static bool s_tick;
 };
 } // namespace Board::Led

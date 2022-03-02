@@ -8,6 +8,17 @@
 namespace I2C {
 class HDC1080 {
  public:
+   enum class Register {
+      Temperature = 0x00,
+      Humidity = 0x01,
+      Configuration = 0x02,
+      SerialID1 = 0xFB,
+      SerialID2 = 0xFC,
+      SerialID3 = 0xFD,
+      ManufacturerID = 0xFE,
+      DeviceID = 0xFF
+   };
+
    /// Read IDs:
    /// IDs are static, they only need to be read once and stored. This is more
    /// efficient because there is a ~20 ms wait every time something is read
@@ -18,14 +29,15 @@ class HDC1080 {
    /// time it is changed is through this class, so it can be stored as well
    /// until it is changed. Then it can be reread.
    static void init();
+   static void prime_register(Register reg);
    /// Convert from Celsius to Fahrenheit
    /// @param tempc Temperature in Celsius
    /// @returns Temperature in Fahrenheit
    static int ctof(int tempc);
    /// @returns Temperature reading in Celsius
-   static int temperatureC();
+   static int temperatureC(bool primed = false);
    /// @returns Humidity reading in relative%
-   static int humidity();
+   static int humidity(bool primed = false);
    /// @returns Serial ID
    static const uint64_t &serialID();
    /// @returns Manufacturer ID
@@ -73,20 +85,9 @@ class HDC1080 {
    static const uint &get_humidity_resolution();
 
  private:
-   enum class Register {
-      Temperature = 0x00,
-      Humidity = 0x01,
-      Configuration = 0x02,
-      SerialID1 = 0xFB,
-      SerialID2 = 0xFC,
-      SerialID3 = 0xFD,
-      ManufacturerID = 0xFE,
-      DeviceID = 0xFF
-   };
-
    static const uint s_address = 0x40;
    static const std::map<Register, uint> s_bytes_per_register;
-   static const uint s_wait_time_ms = 20;
+   static const uint s_wait_time_ms = 50;
 
    static uint64_t s_serialID;
    static int s_manufacturerID;
@@ -97,8 +98,8 @@ class HDC1080 {
    static bool s_btst;
    static bool s_tres;
    static uint s_hres;
-
    static int read(Register reg);
+   static int read_primed(Register reg);
    static void refresh_config();
    static void read_config();
    static uint64_t make_config();

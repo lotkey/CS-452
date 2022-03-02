@@ -38,7 +38,7 @@ add_executable(assignment9
     I2C/I2C.cpp
     I2C/HDC1080/HDC1080.cpp
 
-    StepMotor/StepMotor.cpp
+    Step_motor/Step_motor.cpp
 )
 
 set_target_properties(assignment9 PROPERTIES

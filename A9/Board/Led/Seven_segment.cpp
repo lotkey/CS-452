@@ -6,6 +6,8 @@
 #include <set>
 
 namespace Board::Led {
+bool Seven_segment::s_tick = false;
+
 const std::set<Seven_segment::Segment> Seven_segment::s_segments = {
     Segment::north,  Segment::northeast, Segment::southeast,
     Segment::south,  Segment::southwest, Segment::northwest,
@@ -21,6 +23,12 @@ const std::map<char, std::set<Seven_segment::Segment>>
         {'\'', {{Segment::northwest}}},
         {'"', {{Segment::northeast, Segment::northwest}}},
         {'!', {{Segment::northeast, Segment::decimal}}},
+        {'(',
+         {Segment::north, Segment::northwest, Segment::southwest,
+          Segment::south}},
+        {')',
+         {Segment::north, Segment::northeast, Segment::southeast,
+          Segment::south}},
 
         {'0',
          {Segment::north, Segment::northeast, Segment::northwest,
@@ -123,7 +131,7 @@ const std::map<Seven_segment::Side, std::tuple<bool, bool>>
         {Seven_segment::Side::neither, {false, false}},
         {Seven_segment::Side::left, {true, false}},
         {Seven_segment::Side::right, {false, true}},
-        {Seven_segment::Side::both, {true, true}}};
+        {Seven_segment::Side::both, {false, false}}};
 
 void Seven_segment::init() {
    for (const auto &seg : s_segments) {
@@ -135,9 +143,6 @@ void Seven_segment::init() {
    gpio_init((uint)Segment::cc2);
    gpio_set_dir((uint)Segment::cc1, GPIO_OUT);
    gpio_set_dir((uint)Segment::cc2, GPIO_OUT);
-
-   gpio_init(PICO_DEFAULT_LED_PIN);
-   gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 }
 
 void Seven_segment::clear() {
@@ -150,7 +155,11 @@ void Seven_segment::clear() {
 
 char Seven_segment::uint_to_char(uint i) { return (i % 10) + 48; }
 
-bool Seven_segment::display_char(char c, Side side) {
+bool Seven_segment::set(char c, Side side) {
+   if (!s_chars_as_segments.contains(c)) {
+      return false;
+   }
+
    auto [left_side, right_side] = s_side_to_bool.at(side);
    gpio_put((uint)Segment::cc1, right_side);
    gpio_put((uint)Segment::cc2, left_side);
@@ -163,12 +172,24 @@ bool Seven_segment::display_char(char c, Side side) {
 }
 
 void Seven_segment::display_uint(uint ui) {
-   uint right_digit = ui % 10;
-   uint left_digit = ui % 100 / 10;
+   clear();
 
-   clear();
-   display_char(uint_to_char(right_digit), Side::right);
-   clear();
-   display_char(uint_to_char(left_digit), Side::left);
+   if (s_tick) {
+      uint right_digit = ui % 10;
+      set(uint_to_char(right_digit), Side::right);
+   } else {
+      uint left_digit = ui % 100 / 10;
+      set(uint_to_char(left_digit), Side::left);
+   }
+
+   s_tick = !s_tick;
+}
+
+void Seven_segment::set(Segment seg, Side side) {
+   auto [left_side, right_side] = s_side_to_bool.at(side);
+   gpio_put((uint)Segment::cc1, right_side);
+   gpio_put((uint)Segment::cc2, left_side);
+
+   gpio_put((uint)seg, 1);
 }
 } // namespace Board::Led

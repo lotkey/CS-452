@@ -44,19 +44,38 @@ void HDC1080::init() {
    read_config();
 }
 
+void HDC1080::prime_register(Register reg) {
+   uint8_t reg_int = (uint8_t)reg;
+   int ret = i2c_write_blocking(I2C_PORT, s_address, &reg_int, 1, false);
+}
+
 int HDC1080::ctof(int tempC) {
    int tempF = ((float)tempC * (9.0 / 5.0)) + 32;
    return tempF;
 }
 
-int HDC1080::temperatureC() {
-   int result = read(Register::Temperature);
+int HDC1080::temperatureC(bool primed) {
+   int result;
+
+   if (primed) {
+      result = read_primed(Register::Temperature);
+   } else {
+      result = read(Register::Temperature);
+   }
+
    result = (result / (float)pow(2, 16)) * 165.0 - 40;
    return result;
 }
 
-int HDC1080::humidity() {
-   int result = read(Register::Humidity);
+int HDC1080::humidity(bool primed) {
+   int result;
+
+   if (primed) {
+      result = read_primed(Register::Humidity);
+   } else {
+      result = read(Register::Humidity);
+   }
+   
    result = (result / (float)pow(2, 16)) * 100.0;
    return result;
 }
@@ -87,14 +106,33 @@ int HDC1080::read(Register reg) {
    uint8_t buffer[s_bytes_per_register.at(reg)];
    uint8_t reg_int = (uint8_t)reg;
    int ret = i2c_write_blocking(I2C_PORT, s_address, &reg_int, 1, false);
+
    if (ret < 0) {
       std::cout << "Error: Write blocking returned " << ret << std::endl;
    }
 
    vTaskDelay(s_wait_time_ms / portTICK_PERIOD_MS);
-
    ret = i2c_read_blocking(I2C_PORT, s_address, buffer,
                            s_bytes_per_register.at(reg), false);
+
+   if (ret < 0) {
+      std::cout << "Error: Read blocking returned " << ret << std::endl;
+   }
+
+   int result = 0;
+   for (const auto &byte : buffer) {
+      result = result << 8 | byte;
+   }
+
+   return result;
+}
+
+int HDC1080::read_primed(Register reg) {
+   uint8_t buffer[s_bytes_per_register.at(reg)];
+   uint8_t reg_int = (uint8_t)reg;
+
+   int ret = i2c_read_blocking(I2C_PORT, s_address, buffer,
+                               s_bytes_per_register.at(reg), false);
 
    if (ret < 0) {
       std::cout << "Error: Read blocking returned " << ret << std::endl;
