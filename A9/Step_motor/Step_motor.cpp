@@ -56,18 +56,15 @@ bool Step_motor::step() {
 
    switch (s_state) {
    case State::Clockwise: {
-      std::cout << "stepped clockwise" << std::endl;
       b = step(true);
       break;
    }
    case State::CounterClockwise: {
       b = step(false);
-      std::cout << "stepped counterclockwise" << std::endl;
       break;
    }
    case State::Alternating: {
       b = step(s_alternating_is_cw);
-      std::cout << "stepped alternating" << std::endl;
       break;
    }
    }
@@ -84,6 +81,10 @@ bool Step_motor::step() {
 }
 
 bool Step_motor::step(bool clockwise) {
+   if (s_state == State::Off) {
+      return false;
+   }
+
    if (clockwise) {
       s_step++;
    } else {
@@ -99,4 +100,10 @@ void Step_motor::set_pins() {
    for (const auto &pin : s_pins) {
       gpio_put((int)pin, step.contains(pin));
    }
+}
+
+bool Step_motor::going_clockwise() {
+   return s_state != State::Off &&
+          ((s_state == State::Clockwise) ||
+           (s_state == State::Alternating && s_alternating_is_cw));
 }

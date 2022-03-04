@@ -10,20 +10,20 @@
 #include <task.h>
 #include <tusb.h>
 
+#include <iomanip>
 #include <iostream>
 #include <optional>
 #include <set>
+#include <sstream>
 #include <tuple>
 #include <vector>
 
+/// Set to true for vPrintTaskList
+constexpr bool Debug = false;
+
 void vControl(void *args);
-int round(float f) {
-   int i = f;
-   if (f - i >= 0.5) {
-      i++;
-   }
-   return i;
-}
+void vPrintTaskList();
+int round(float f);
 
 int main() {
    // Initialize all IO
@@ -41,6 +41,12 @@ int main() {
 
       xTaskCreate((TaskFunction_t)vControl, "vControl", 256, (void *)&xQueues,
                   1, nullptr);
+
+      if (Debug) {
+         xTaskCreate((TaskFunction_t)vPrintTaskList, "vTaskList", 1000, nullptr,
+                     2, nullptr);
+      }
+
       vTaskStartScheduler();
    } catch (std::exception &e) {
       while (true) {
@@ -104,11 +110,6 @@ void vControl(void *args) {
          } else {
             uiButtonPressCount++;
          }
-
-         std::cout << uiButtonPressCount << std::endl;
-
-      } else {
-         // button wasn't :(
       }
 #pragma endregion
 
@@ -123,11 +124,33 @@ void vControl(void *args) {
                uiMove = uiButtonPressCount - 1;
             }
 
+            if (uiMove == 2) {
+               Board::Led::Seven_segment::clear();
+               Board::Led::Seven_segment::set(
+                   'E', Board::Led::Seven_segment::Side::both);
+               Step_motor::set_state(Step_motor::State::Off);
+            } else {
+               switch (uiDirection) {
+               case 0: {
+                  Step_motor::set_state(Step_motor::State::Clockwise);
+                  break;
+               }
+               case 1: {
+                  Step_motor::set_state(Step_motor::State::CounterClockwise);
+                  break;
+               }
+               case 2: {
+                  Step_motor::set_state(Step_motor::State::Alternating);
+                  break;
+               }
+               }
+            }
+
             break;
          }
          case Board::Button::Position::top_right: {
 
-            if (uiButtonPressCount <= 3) {
+            if (uiButtonPressCount <= 3 && uiMove != 2) {
                if (uiDirection != uiButtonPressCount - 1) {
                   uiDirection = uiButtonPressCount - 1;
                   switch (uiDirection) {
@@ -151,7 +174,7 @@ void vControl(void *args) {
          }
          case Board::Button::Position::bottom: {
 
-            if (uiButtonPressCount <= 3) {
+            if (uiButtonPressCount <= 3 && uiMove != 2) {
                uiDisplay = uiButtonPressCount - 1;
             }
 
@@ -217,19 +240,53 @@ void vControl(void *args) {
       }
 #pragma endregion
 
-      if (uiDisplay == 0) {
-         Board::Led::Seven_segment::display_uint(uiTemperature);
-      } else if (uiDisplay == 1) {
-         Board::Led::Seven_segment::display_uint(uiHumidity);
-      } else if (uiDisplay == 2) {
-         int index = round(Step_motor::percent_through_revolution() *
-                           (float)xMotorStateSegments.size()) %
-                     xMotorStateSegments.size();
+#pragma region Display
 
-         Board::Led::Seven_segment::set_combo<
-             char, Board::Led::Seven_segment::Segment>(
-             xMoveStatusChars[uiMove], xMotorStateSegments[index]);
+      if (uiMove != 2) {
+
+         if (uiDisplay == 0 || uiDisplay == 1) {
+            std::stringstream xSs;
+            if (uiDisplay == 0) {
+               xSs << std::hex << uiTemperature;
+            } else if (uiDisplay == 1) {
+               xSs << std::hex << uiHumidity;
+            }
+            std::string xHexString = xSs.str();
+            while (xHexString.length() < 2) {
+               xHexString += '0';
+            }
+            Board::Led::Seven_segment::set_combo<char, char>(xHexString[0],
+                                                             xHexString[1]);
+         } else if (uiDisplay == 2) {
+            std::set<Board::Led::Seven_segment::Segment> xSegments;
+            int index = round(Step_motor::percent_through_revolution() *
+                              (float)xMotorStateSegments.size()) %
+                        xMotorStateSegments.size();
+
+            xSegments.insert(xMotorStateSegments[index]);
+            if (Step_motor::going_clockwise()) {
+               xSegments.insert(Board::Led::Seven_segment::Segment::decimal);
+            }
+
+            Board::Led::Seven_segment::set_combo<
+                char, const std::set<Board::Led::Seven_segment::Segment> &>(
+                xMoveStatusChars[uiMove], xSegments);
+         }
       }
+#pragma endregion
+   }
+}
+
+void vPrintTaskList() {
+   char pTaskList[500];
+   while (true) {
+      vTaskList(pTaskList);
+      std::cout << "**********************************" << std::endl;
+      std::cout << "Task  State   Prio    Stack    Num" << std::endl;
+      std::cout << "**********************************" << std::endl;
+      std::cout << pTaskList << std::endl;
+      std::cout << "**********************************" << std::endl;
+      vTaskDelay(1000 / portTICK_PERIOD_MS);
    }
 }
 

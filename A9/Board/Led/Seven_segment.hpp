@@ -29,10 +29,6 @@ class Seven_segment {
    static void init();
    /// Turns off all LEDs/clears display
    static void clear();
-   /// Converts from uint to a char
-   /// @param ui single-digit unsigned int to convert from
-   /// @returns the char representation of the int: returns '1' when given 1
-   static char uint_to_char(uint ui);
    /// Displays a character to the LED
    /// @param c the char to display
    /// @param side which side(s) to display to
@@ -43,19 +39,28 @@ class Seven_segment {
    /// Displays 14 when given 14, 00 when given 100, 01 when given 1, etc.
    /// @param ui uint to display
    static void display_uint(uint ui);
+   /// Turns on the segment on the specified side(s)
+   /// @param seg Segment to turn on
+   /// @param side Side(s) to set to turn the segment on
    static void set(Segment seg, Side side);
-
+   /// Displays the int on the specified side(s)
+   /// @param ui Int, rightmost digit will be used
+   /// @param side Side(s) to display the digit on
+   static void set(uint ui, Side side);
+   /// Turns the segments on the specified side(s)
+   /// @param segs Set of segments to turn on
+   /// @param side Side(s) to turn the segments on
+   static void set(const std::set<Segment> &segs, Side side);
+   /// Displays two things of type char, Segment, or uint at the same time
+   /// @param t1 Left thing to display
+   /// @param t2 Right thing to display
    template <typename T1, typename T2> static void set_combo(T1 t1, T2 t2) {
       clear();
 
       if (s_tick) {
          set(t1, Side::left);
-         // uint right_digit = ui % 10;
-         // display_char(uint_to_char(right_digit), Side::right);
       } else {
          set(t2, Side::right);
-         // uint left_digit = ui % 100 / 10;
-         // display_char(uint_to_char(left_digit), Side::left);
       }
 
       s_tick = !s_tick;
@@ -66,5 +71,10 @@ class Seven_segment {
    static const std::map<char, std::set<Segment>> s_chars_as_segments;
    static const std::map<Side, std::tuple<bool, bool>> s_side_to_bool;
    static bool s_tick;
+
+   /// Converts from uint to a char
+   /// @param ui single-digit unsigned int to convert from
+   /// @returns the char representation of the int: returns '1' when given 1
+   static char uint_to_char(uint ui);
 };
 } // namespace Board::Led

@@ -3,6 +3,7 @@
 #include <hardware/gpio.h>
 #include <pico/stdlib.h>
 
+#include <iostream>
 #include <set>
 
 namespace Board::Led {
@@ -69,7 +70,7 @@ const std::map<char, std::set<Seven_segment::Segment>>
           Segment::south}},
         {'D',
          {Segment::northeast, Segment::southeast, Segment::southwest,
-          Segment::south}},
+          Segment::south, Segment::center}},
         {'E',
          {Segment::north, Segment::northwest, Segment::center,
           Segment::southwest, Segment::south}},
@@ -156,7 +157,12 @@ void Seven_segment::clear() {
 char Seven_segment::uint_to_char(uint i) { return (i % 10) + 48; }
 
 bool Seven_segment::set(char c, Side side) {
+   if (c >= 'a' && c <= 'z') {
+      c -= 32;
+   }
+
    if (!s_chars_as_segments.contains(c)) {
+      std::cout << "Segments for char '" << c << "' are not set." << std::endl;
       return false;
    }
 
@@ -176,20 +182,35 @@ void Seven_segment::display_uint(uint ui) {
 
    if (s_tick) {
       uint right_digit = ui % 10;
-      set(uint_to_char(right_digit), Side::right);
+      set(right_digit, Side::right);
    } else {
       uint left_digit = ui % 100 / 10;
-      set(uint_to_char(left_digit), Side::left);
+      set(left_digit, Side::left);
    }
 
    s_tick = !s_tick;
 }
 
 void Seven_segment::set(Segment seg, Side side) {
+   if (seg == Segment::cc1 || seg == Segment::cc2) {
+      return;
+   }
+
    auto [left_side, right_side] = s_side_to_bool.at(side);
    gpio_put((uint)Segment::cc1, right_side);
    gpio_put((uint)Segment::cc2, left_side);
 
    gpio_put((uint)seg, 1);
+}
+
+void Seven_segment::set(const std::set<Segment> &segs, Side side) {
+   for (const auto &seg : segs) {
+      set(seg, side);
+   }
+}
+
+void Seven_segment::set(uint ui, Side side) {
+   char c = uint_to_char(ui % 10);
+   set(c, side);
 }
 } // namespace Board::Led
