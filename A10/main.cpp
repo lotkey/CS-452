@@ -23,81 +23,82 @@ constexpr bool Debug = false;
 
 void vControl(void *args);
 void vPrintTaskList();
+void vFlashPixels(void *args);
 int round(float f);
 
 int main() {
    // Initialize all IO
    stdio_init_all();
-   Board::Led::Pixel::init();
 
-   const float Brightness = 0.1;
-   const float Rainbow_increment = 1.0 / 255.0;
-   float rainbow_index = 0;
-
-   while (true) {
-      Board::Util::Color c1 = Board::Util::Color::Rainbow[(int)rainbow_index];
-      Board::Util::Color c2 =
-          Board::Util::Color::Rainbow[((int)rainbow_index + 1) %
-                                      Board::Util::Color::Rainbow.size()];
-
-      float blend = rainbow_index - (int)rainbow_index;
-      float blend1 = 1.0 - blend;
-
-      c1 = c1 * blend1;
-      c2 = c2 * blend;
-      Board::Util::Color c3 = (c1 + c2) * Brightness;
-
-      std::cout << c3.to_string() << std::endl;
-
-      Board::Led::Pixel::set({0, 1, 2, 3}, c3);
-      Board::Led::Pixel::show();
-
-      rainbow_index += Rainbow_increment;
-      if (rainbow_index >= Board::Util::Color::Rainbow.size()) {
-         rainbow_index = 0 + Board::Util::Color::Rainbow.size() - rainbow_index;
+   if (Debug) {
+      while (!tud_cdc_connected()) {
+         sleep_ms(100);
       }
-      sleep_ms(1);
    }
 
-   /// w b r g
-   // Board::Led::Pixel::set(0, {10, 0, 0, 0});
-   // Board::Led::Pixel::set(1, {0, 10, 0, 0});
-   // Board::Led::Pixel::set(2, {0, 0, 10, 0});
-   // Board::Led::Pixel::set(3, {0, 0, 0, 10});
-   // Board::Led::Pixel::show();
+   try {
+      Step_motor::init();
+      Board::Led::Seven_segment::init();
+      Board::Led::Seven_segment::clear();
+      Board::Led::Pixel::init();
+      Board::Led::Pixel::set_brightness(0.05);
+      Board::Led::Pixel::set_sequence(
+          0, Board::Util::Palettes::Rainbow::Sequence, 0);
+      Board::Led::Pixel::set_sequence(
+          1, Board::Util::Palettes::Rainbow::Sequence, 2);
+      Board::Led::Pixel::set_sequence(
+          2, Board::Util::Palettes::Rainbow::Sequence, 4);
+      Board::Led::Pixel::set_sequence(
+          3, Board::Util::Palettes::Rainbow::Sequence, 6);
+      Board::Button::init();
 
-   // try {
-   //    Step_motor::init();
-   //    Board::Led::Seven_segment::init();
-   //    Board::Led::Seven_segment::clear();
-   //    Board::Button::init();
+      QueueHandle_t xPixelQueue = xQueueCreate(11, sizeof(uint));
+      SemaphoreHandle_t xSemaphore = xSemaphoreCreateBinary();
 
-   //    QueueHandle_t xDisplayQueue = xQueueCreate(11, sizeof(uint8_t));
+      std::tuple<QueueHandle_t, SemaphoreHandle_t> args = {xPixelQueue,
+                                                           xSemaphore};
 
-   //    std::tuple<QueueHandle_t> xQueues = {xDisplayQueue};
+      xTaskCreate((TaskFunction_t)vControl, "vControl", 256, (void *)&args, 1,
+                  nullptr);
+      xTaskCreate((TaskFunction_t)vFlashPixels, "vFlashPixels", 256,
+                  (void *)&args, 2, nullptr);
+      if (Debug) {
+         xTaskCreate((TaskFunction_t)vPrintTaskList, "vTaskList", 1000, nullptr,
+                     3, nullptr);
+      }
 
-   //    xTaskCreate((TaskFunction_t)vControl, "vControl", 256, (void
-   //    *)&xQueues,
-   //                1, nullptr);
+      vTaskStartScheduler();
+   } catch (std::exception &e) {
+      while (true) {
+         std::cout << "There has been an error: " << e.what() << std::endl;
+         sleep_ms(1000);
+      }
+   }
+}
 
-   //    if (Debug) {
-   //       xTaskCreate((TaskFunction_t)vPrintTaskList, "vTaskList", 1000,
-   //       nullptr,
-   //                   2, nullptr);
-   //    }
+void vFlashPixels(void *args) {
+   const float Increment = 1.0 / 255.0;
+   uint delay_amount_ms = 1e3;
+   auto [xQueue, xSemaphore] =
+       *(std::tuple<QueueHandle_t, SemaphoreHandle_t> *)args;
+   xSemaphoreGive(xSemaphore);
 
-   //    vTaskStartScheduler();
-   // } catch (std::exception &e) {
-   //    while (true) {
-   //       std::cout << "There has been an error: " << e.what() << std::endl;
-   //       sleep_ms(1000);
-   //    }
-   // }
+   while (true) {
+      if (xSemaphoreTake(xSemaphore, portMAX_DELAY)) {
+         while (xQueueReceive(xQueue, (void *)&delay_amount_ms, 0)) {
+         }
+
+         Board::Led::Pixel::step_sequence({0, 1, 2, 3}, Increment);
+         Board::Led::Pixel::show();
+      }
+   }
 }
 
 void vControl(void *args) {
    I2C::init();
    I2C::HDC1080::init();
+   auto [xQueue, xSemaphore] =
+       *(std::tuple<QueueHandle_t, SemaphoreHandle_t> *)args;
    Step_motor::set_state(Step_motor::State::Clockwise);
    std::optional<Board::Button::Position> xButtonLastPressed;
    std::vector<Board::Led::Seven_segment::Segment> xMotorStateSegments = {
@@ -133,7 +134,6 @@ void vControl(void *args) {
    uint8_t uiDisplay = 0;
 
    while (true) {
-
 #pragma region Get button input
       auto xCurrentButtonPressed = Board::Button::get_debounced();
       uint64_t uiCurrentTimeUs = to_us_since_boot(get_absolute_time());
@@ -313,6 +313,10 @@ void vControl(void *args) {
          }
       }
 #pragma endregion
+
+      uint microseconds_wait = 1;
+      xQueueSend(xQueue, (void *)&microseconds_wait, 0);
+      xSemaphoreGive(xSemaphore);
    }
 }
 
